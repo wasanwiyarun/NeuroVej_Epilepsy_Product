@@ -1,6 +1,9 @@
-## Jira work item
+## Controlled work item
 
-`wasanwiyarun/NeuroVej_Epilepsy_DOC#___`
+`DOC#___`
+
+The maintainer records the clickable public-PR link in the private controlled
+issue. Do not expose private issue content in this public PR.
 
 ## Change summary
 

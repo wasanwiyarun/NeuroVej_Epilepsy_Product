@@ -8,7 +8,9 @@ tools that are not delivered belong in `NeuroVej_Epilepsy_NPS_Tools`.
 
 ## Change control
 
-- Every branch, commit, and pull request must reference a real central DOC GitHub Issue.
+- Every branch, commit, and pull request uses the approved non-clickable
+  `DOC#<number>` identifier. The maintainer links the public PR from the private
+  controlled issue.
 - Do not implement product functionality before its requirements and design are
   reviewed at the applicable lifecycle gate.
 - Link code and tests to stable requirement/design/test IDs.
