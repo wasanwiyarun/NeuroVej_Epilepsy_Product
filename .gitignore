@@ -1,0 +1,30 @@
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Dependencies, caches, and build outputs
+node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+coverage/
+dist/
+build/
+out/
+*.log
+
+# Mobile/platform generated files
+.gradle/
+DerivedData/
+Pods/
+

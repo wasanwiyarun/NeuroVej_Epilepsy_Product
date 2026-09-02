@@ -1,0 +1,35 @@
+name: Public bug report
+description: Report reproducible behavior without health data or security details.
+title: "[BUG] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: Do not include personal health information, patient data, credentials, private lifecycle evidence, or suspected vulnerability details.
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+      description: Describe what happened using synthetic or non-sensitive data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Include version and environment, but remove secrets and personal data.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safe
+    attributes:
+      label: Public-information confirmation
+      options:
+        - label: I confirm this report contains no health data, credentials, private evidence, or undisclosed vulnerability details.
+          required: true
