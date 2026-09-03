@@ -23,7 +23,9 @@ seizure.
 
 ## Procedure
 
-1. Install version 0.1.0 through Zepp Developer Mode.
+1. From the app directory, run `npm run preview`. In Zepp Developer Mode's
+   `Mini Program` tab, tap the QR/scanner icon at the upper right and scan the
+   terminal QR code. Install version 0.1.0 on the paired Amazfit Bip 6.
 2. Launch `Bip 6 Sensor Logger` and confirm both safety labels are visible.
    Confirm the banner initially says `INITIALIZING SENSORS` and does not say
    `Monitoring` before both streams are valid.

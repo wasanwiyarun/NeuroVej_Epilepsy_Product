@@ -80,6 +80,26 @@ the Git repositories.
 It cannot establish clinical performance, continuous-monitoring feasibility,
 sampling-rate guarantees, battery life, or seizure-related performance.
 
+## Install the feasibility build on the watch
+
+Use the repository-local Zeus CLI through npm; a global `zeus` command is not
+required. From this directory, with the pinned Node.js runtime selected:
+
+```sh
+npm run zeus:login  # only if this computer is not already logged in
+npm run preview
+```
+
+Keep the preview command running while its QR code is displayed. In the Zepp
+mobile app, open `Developer Mode` > `Mini Program`, tap the QR/scanner icon at
+the upper right, and scan that terminal QR code. Select the paired Amazfit Bip
+6 if prompted, wait for installation, then launch `Bip 6 Sensor Logger` from
+the watch app list.
+
+Record the generated package identity and all observations using
+`PHYSICAL_TEST_PROTOCOL.md`. The preview package is temporary feasibility
+software and must not be used for health monitoring.
+
 ## Official API references checked on 2026-09-03
 
 - [Accelerometer](https://docs.zepp.com/docs/reference/device-app-api/newAPI/sensor/Accelerometer/)
