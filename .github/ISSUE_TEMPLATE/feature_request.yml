@@ -1,0 +1,28 @@
+name: Public feature proposal
+description: Propose a capability without making unapproved medical claims.
+title: "[FEATURE] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: This form is public. Do not include health data, credentials, private evidence, vulnerability details, or unsupported medical claims.
+  - type: textarea
+    id: need
+    attributes:
+      label: User need
+      description: Explain the problem and who benefits without identifying a patient.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed capability
+    validations:
+      required: true
+  - type: textarea
+    id: safety_security
+    attributes:
+      label: Possible safety or security impact
+      description: State whether review may be needed; do not disclose sensitive details.
+    validations:
+      required: true

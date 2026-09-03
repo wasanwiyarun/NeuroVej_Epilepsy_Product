@@ -1,0 +1,56 @@
+{
+  "configVersion": "v3",
+  "app": {
+    "appId": 1090900,
+    "appName": "Bip 6 Compile Spike",
+    "appType": "app",
+    "version": {
+      "code": 1,
+      "name": "0.0.1"
+    },
+    "icon": "icon.png",
+    "vender": "NeuroVej",
+    "description": "Non-clinical toolchain and device-target compile test"
+  },
+  "permissions": [],
+  "runtime": {
+    "apiVersion": {
+      "compatible": "4.2",
+      "target": "4.2",
+      "minVersion": "4.2"
+    }
+  },
+  "targets": {
+    "amazfit-bip-6": {
+      "module": {
+        "page": {
+          "pages": [
+            "page/amazfit-bip-6/home/index.page"
+          ]
+        }
+      },
+      "platforms": [
+        {
+          "name": "amazfit-bip-6-cn",
+          "deviceSource": 9765120
+        },
+        {
+          "name": "amazfit-bip-6-global",
+          "deviceSource": 9765121
+        },
+        {
+          "name": "amazfit-bip-6-variant",
+          "deviceSource": 10158337
+        }
+      ],
+      "designWidth": 390
+    }
+  },
+  "i18n": {
+    "en-US": {
+      "appName": "Bip 6 Compile Spike"
+    }
+  },
+  "defaultLanguage": "en-US",
+  "debug": false
+}

@@ -1,0 +1,17 @@
+{
+  "name": "neurovej-bip6-compile-spike",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Non-clinical Zepp OS compile feasibility spike for Amazfit Bip 6",
+  "scripts": {
+    "postinstall": "node scripts/link-zepp-utils.mjs",
+    "assets": "node scripts/generate-assets.mjs",
+    "build": "npm run assets && zeus build --target \"Amazfit Bip 6\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@zeppos/zeus-cli": "1.9.3"
+  }
+}

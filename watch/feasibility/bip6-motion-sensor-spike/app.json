@@ -1,0 +1,59 @@
+{
+  "configVersion": "v3",
+  "app": {
+    "appId": 1090901,
+    "appName": "Bip 6 Sensor Logger",
+    "appType": "app",
+    "version": {
+      "code": 4,
+      "name": "0.1.3"
+    },
+    "icon": "icon.png",
+    "vender": "NeuroVej",
+    "description": "Foreground-only non-clinical ACC/GYRO feasibility logger and alert UI self-test"
+  },
+  "permissions": [
+    "device:os.accelerometer",
+    "device:os.gyroscope"
+  ],
+  "runtime": {
+    "apiVersion": {
+      "compatible": "4.2",
+      "target": "4.2",
+      "minVersion": "4.2"
+    }
+  },
+  "targets": {
+    "amazfit-bip-6": {
+      "module": {
+        "page": {
+          "pages": [
+            "page/amazfit-bip-6/home/index.page"
+          ]
+        }
+      },
+      "platforms": [
+        {
+          "name": "amazfit-bip-6-cn",
+          "deviceSource": 9765120
+        },
+        {
+          "name": "amazfit-bip-6-global",
+          "deviceSource": 9765121
+        },
+        {
+          "name": "amazfit-bip-6-variant",
+          "deviceSource": 10158337
+        }
+      ],
+      "designWidth": 390
+    }
+  },
+  "i18n": {
+    "en-US": {
+      "appName": "Bip 6 Sensor Logger"
+    }
+  },
+  "defaultLanguage": "en-US",
+  "debug": false
+}

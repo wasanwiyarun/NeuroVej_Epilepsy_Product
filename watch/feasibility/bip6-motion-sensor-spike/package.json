@@ -1,0 +1,21 @@
+{
+  "name": "neurovej-bip6-motion-sensor-spike",
+  "version": "0.1.3",
+  "private": true,
+  "type": "module",
+  "description": "Non-clinical foreground ACC/GYRO feasibility logger for Amazfit Bip 6",
+  "scripts": {
+    "postinstall": "node scripts/link-zepp-utils.mjs",
+    "assets": "node scripts/generate-assets.mjs",
+    "test": "node --test --test-isolation=none test/*.test.js",
+    "build": "npm run assets && zeus build --target \"Amazfit Bip 6\"",
+    "zeus:login": "zeus login",
+    "preview": "npm run assets && zeus preview --target \"Amazfit Bip 6\""
+  },
+  "engines": {
+    "node": "24.19.0"
+  },
+  "devDependencies": {
+    "@zeppos/zeus-cli": "1.9.3"
+  }
+}
