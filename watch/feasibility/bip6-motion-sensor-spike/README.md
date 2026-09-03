@@ -1,6 +1,7 @@
 # Amazfit Bip 6 Foreground Motion-Sensor Spike
 
-This DOC#5 app is a non-clinical feasibility probe for FEA-PRO-001. It opens
+This DOC#5 version 0.1.3 app is a non-clinical feasibility probe for
+FEA-PRO-001. It opens
 the Amazfit Bip 6 accelerometer and gyroscope at Zepp OS `FREQ_MODE_NORMAL`,
 shows live vector magnitudes, observed callback rates, session callback counts,
 minimum/maximum callback intervals, maximum observed callback gaps, and data
@@ -11,7 +12,8 @@ that request while stopping both streams when the page is destroyed.
 It does **not** detect, diagnose, predict, or rule out seizures. It does not
 show a "normal" state, persist motion data, transmit data, contact a phone, or
 raise an algorithm-driven alert. The button runs only an explicitly labelled
-visual and finite haptic **self-test**.
+visual and finite haptic **self-test** whose banner is exactly
+`Alert UI self-test`.
 
 ## Safety boundary
 
@@ -38,8 +40,20 @@ visual and finite haptic **self-test**.
   minimum/maximum interval as `dt`, and longest silence as `gap`. Values beyond
   the fixed display range use a trailing `+`; the two-minute protocol remains
   inside the exact display range under expected callback rates.
-- The self-test uses one finite `VIBRATOR_SCENE_NOTIFICATION` scene, ignores
-  repeated presses while active, and is stopped again during cleanup.
+- The self-test uses one `VIBRATOR_SCENE_NOTIFICATION` scene and schedules one
+  explicit application `stop()` request with a nominal Development timer delay
+  of 1,000 ms. This delay argument is not an execution deadline and does not
+  prove that firmware physically interrupts a blocked or faulty runtime at that
+  instant. Repeated presses remain ignored during the five-second visual
+  self-test.
+- Haptic start, stop, scheduling, and cancellation exceptions are contained
+  without retry loops. The visual self-test remains non-medical and shows a
+  short haptic fault status when the application cannot establish the normal
+  stop-request path.
+- Page cleanup cancels a pending haptic-stop timer. A successful stop is never
+  repeated; if the first stop throws, cleanup permits exactly one further stop
+  attempt. Repeated cleanup is idempotent, so no path makes more than two stop
+  attempts for one scene start.
 - Each foreground page session makes at most one
   `setPageBrightTime({ brightTime: 150000 })` request. This temporarily extends
   screen lighting only. The configured value is nominally 30 seconds longer
@@ -107,7 +121,9 @@ the Git repositories.
   the required 120-second stationary observation and normal display behavior
   resumes after exit;
 - whether the finite visual/haptic self-test is distinguishable from ordinary
-  monitoring; and
+  monitoring, whether vibration ceases without manual intervention, and
+  whether it is no longer perceptible at the protocol's two-second physical
+  observation point; and
 - whether cleanup behaves on exit and repeated launch.
 
 It cannot establish clinical performance, continuous-monitoring feasibility,

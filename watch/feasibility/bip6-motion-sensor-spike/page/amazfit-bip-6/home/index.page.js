@@ -29,6 +29,10 @@ import {
   formatNumber,
   vectorMagnitude,
 } from '../../../lib/telemetry.js'
+import {
+  ALERT_UI_SELF_TEST_TEXT,
+  createAlertUiSelfTestLifetime,
+} from '../../../lib/alert-ui-self-test.js'
 import { createPageBrightLifetime } from '../../../lib/page-bright-lifetime.js'
 import {
   createSensorChannelState,
@@ -38,7 +42,6 @@ import {
 } from '../../../lib/sensor-channel.js'
 
 const UI_REFRESH_MS = 500
-const SELF_TEST_DISPLAY_MS = 5000
 
 let runtime = null
 
@@ -49,17 +52,27 @@ function createRuntimeState() {
     destroyed: false,
     refreshTimer: null,
     rateSnapshotMs: nowMs,
-    selfTestUntilMs: 0,
     startedAtMs: nowMs,
-    selfTestDetail: 'Visual and finite haptic output only',
     accelerometer: createSensorChannelState(),
     gyroscope: createSensorChannelState(),
+    alertUiSelfTest: createAlertUiSelfTestLifetime({
+      createVibrator: () => {
+        const vibrator = new Vibrator()
+        return {
+          start: () =>
+            vibrator.start({ mode: VIBRATOR_SCENE_NOTIFICATION }),
+          stop: () => vibrator.stop(),
+        }
+      },
+      scheduleStop: (callback, delayMs) => setTimeout(callback, delayMs),
+      cancelStop: (timerId) => clearTimeout(timerId),
+      log: (message) => console.log(message),
+    }),
     pageBrightLifetime: createPageBrightLifetime({
       setPageBrightTime,
       resetPageBrightTime,
       log: (message) => console.log(message),
     }),
-    vibrator: null,
     widgets: {},
   }
 }
@@ -160,7 +173,7 @@ function createInterface() {
     press_color: 0x115e59,
     color: 0xffffff,
     text_size: 19,
-    text: 'RUN ALERT SELF-TEST',
+    text: 'RUN ALERT UI SELF-TEST',
     click_func: runAlertSelfTest,
   })
 
@@ -218,9 +231,9 @@ function getStreamStates(nowMs) {
 }
 
 function renderBanner(nowMs, acquisitionState) {
-  if (nowMs < runtime.selfTestUntilMs) {
-    setText(runtime.widgets.banner, 'ALERT UI SELF-TEST')
-    setText(runtime.widgets.assessment, runtime.selfTestDetail)
+  if (runtime.alertUiSelfTest.isVisualActive(nowMs)) {
+    setText(runtime.widgets.banner, ALERT_UI_SELF_TEST_TEXT)
+    setText(runtime.widgets.assessment, runtime.alertUiSelfTest.getDetail())
     return
   }
 
@@ -305,21 +318,8 @@ function runAlertSelfTest() {
   }
 
   const nowMs = Date.now()
-  if (nowMs < runtime.selfTestUntilMs) {
+  if (!runtime.alertUiSelfTest.start(nowMs)) {
     return
-  }
-
-  runtime.selfTestUntilMs = nowMs + SELF_TEST_DISPLAY_MS
-  runtime.selfTestDetail = 'Visual + finite haptic output only'
-
-  try {
-    if (!runtime.vibrator) {
-      runtime.vibrator = new Vibrator()
-    }
-    runtime.vibrator.start({ mode: VIBRATOR_SCENE_NOTIFICATION })
-  } catch (error) {
-    runtime.selfTestDetail = 'Visual only - haptic unavailable'
-    console.log('Alert UI self-test haptic unavailable')
   }
 
   refreshInterface()
@@ -332,6 +332,7 @@ function shutdownRuntime() {
 
   runtime.destroyed = true
 
+  runtime.alertUiSelfTest.cleanup()
   runtime.pageBrightLifetime.cleanup()
 
   if (runtime.refreshTimer !== null) {
@@ -341,15 +342,6 @@ function shutdownRuntime() {
 
   stopSensorChannel(runtime.accelerometer, (message) => console.log(message))
   stopSensorChannel(runtime.gyroscope, (message) => console.log(message))
-
-  if (runtime.vibrator) {
-    try {
-      runtime.vibrator.stop()
-    } catch (error) {
-      console.log('Vibrator cleanup failed')
-    }
-    runtime.vibrator = null
-  }
 }
 
 Page({
