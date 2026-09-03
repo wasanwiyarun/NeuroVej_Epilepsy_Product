@@ -6,6 +6,10 @@ import {
   Vibrator,
 } from '@zos/sensor'
 import {
+  resetPageBrightTime,
+  setPageBrightTime,
+} from '@zos/display'
+import {
   align,
   createWidget,
   prop,
@@ -25,6 +29,7 @@ import {
   formatNumber,
   vectorMagnitude,
 } from '../../../lib/telemetry.js'
+import { createPageBrightLifetime } from '../../../lib/page-bright-lifetime.js'
 import {
   createSensorChannelState,
   observeSensorChannelGap,
@@ -49,6 +54,11 @@ function createRuntimeState() {
     selfTestDetail: 'Visual and finite haptic output only',
     accelerometer: createSensorChannelState(),
     gyroscope: createSensorChannelState(),
+    pageBrightLifetime: createPageBrightLifetime({
+      setPageBrightTime,
+      resetPageBrightTime,
+      log: (message) => console.log(message),
+    }),
     vibrator: null,
     widgets: {},
   }
@@ -322,6 +332,8 @@ function shutdownRuntime() {
 
   runtime.destroyed = true
 
+  runtime.pageBrightLifetime.cleanup()
+
   if (runtime.refreshTimer !== null) {
     clearInterval(runtime.refreshTimer)
     runtime.refreshTimer = null
@@ -344,27 +356,34 @@ Page({
   build() {
     shutdownRuntime()
     runtime = createRuntimeState()
-    createInterface()
+    runtime.pageBrightLifetime.request()
 
-    startSensorChannel(
-      runtime.accelerometer,
-      Accelerometer,
-      FREQ_MODE_NORMAL,
-      'Accelerometer',
-      () => Date.now(),
-      (message) => console.log(message),
-    )
-    startSensorChannel(
-      runtime.gyroscope,
-      Gyroscope,
-      FREQ_MODE_NORMAL,
-      'Gyroscope',
-      () => Date.now(),
-      (message) => console.log(message),
-    )
+    try {
+      createInterface()
 
-    refreshInterface()
-    runtime.refreshTimer = setInterval(refreshInterface, UI_REFRESH_MS)
+      startSensorChannel(
+        runtime.accelerometer,
+        Accelerometer,
+        FREQ_MODE_NORMAL,
+        'Accelerometer',
+        () => Date.now(),
+        (message) => console.log(message),
+      )
+      startSensorChannel(
+        runtime.gyroscope,
+        Gyroscope,
+        FREQ_MODE_NORMAL,
+        'Gyroscope',
+        () => Date.now(),
+        (message) => console.log(message),
+      )
+
+      refreshInterface()
+      runtime.refreshTimer = setInterval(refreshInterface, UI_REFRESH_MS)
+    } catch (error) {
+      shutdownRuntime()
+      throw error
+    }
   },
 
   onDestroy() {

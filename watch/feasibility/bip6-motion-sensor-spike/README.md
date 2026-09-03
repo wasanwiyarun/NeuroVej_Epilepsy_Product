@@ -4,7 +4,9 @@ This DOC#5 app is a non-clinical feasibility probe for FEA-PRO-001. It opens
 the Amazfit Bip 6 accelerometer and gyroscope at Zepp OS `FREQ_MODE_NORMAL`,
 shows live vector magnitudes, observed callback rates, session callback counts,
 minimum/maximum callback intervals, maximum observed callback gaps, and data
-ages, and then stops both streams when the page is destroyed.
+ages. At page build it requests a finite 150-second screen-lighting interval
+to support the two-minute foreground observation, and it explicitly resets
+that request while stopping both streams when the page is destroyed.
 
 It does **not** detect, diagnose, predict, or rule out seizures. It does not
 show a "normal" state, persist motion data, transmit data, contact a phone, or
@@ -38,6 +40,15 @@ visual and finite haptic **self-test**.
   inside the exact display range under expected callback rates.
 - The self-test uses one finite `VIBRATOR_SCENE_NOTIFICATION` scene, ignores
   repeated presses while active, and is stopped again during cleanup.
+- Each foreground page session makes at most one
+  `setPageBrightTime({ brightTime: 150000 })` request. This temporarily extends
+  screen lighting only. The configured value is nominally 30 seconds longer
+  than the required 120-second observation, but Zepp does not document precise
+  start/restart semantics; it is not an always-on-display or background mode.
+- Cleanup calls `resetPageBrightTime()` once, including after a synchronous
+  page-build failure. Non-zero results and exceptions from either display API
+  are contained and logged. The build and host tests verify these calls, while
+  their effect on Bip 6 firmware remains a physical-test observation.
 - Do not use this app for medical decisions or emergency response.
 - Do not provoke or imitate seizure-like movement to test it.
 
@@ -47,7 +58,8 @@ The sensors run only while this Device App page is active. Zepp's published
 App Service restrictions prohibit high-power accelerometer and gyroscope use
 in the background service. This spike therefore cannot establish feasibility
 for continuous background monitoring. Closing or leaving the app must be
-treated as monitoring stopped.
+treated as monitoring stopped. Extending the page's screen-lighting time does
+not change that limitation and does not keep acquisition alive after cleanup.
 
 There is intentionally no App Service, Side Service, network permission,
 storage permission, or mobile notification implementation in this package.
@@ -91,6 +103,9 @@ the Git repositories.
   maximum observed callback silence for the foreground session;
 - whether values change plausibly with ordinary wrist movement;
 - whether data-stale and unavailable states appear safely;
+- whether the finite screen-lighting request keeps the page visible through
+  the required 120-second stationary observation and normal display behavior
+  resumes after exit;
 - whether the finite visual/haptic self-test is distinguishable from ordinary
   monitoring; and
 - whether cleanup behaves on exit and repeated launch.
@@ -118,10 +133,12 @@ Record the generated package identity and all observations using
 `PHYSICAL_TEST_PROTOCOL.md`. The preview package is temporary feasibility
 software and must not be used for health monitoring.
 
-## Official API references checked on 2026-09-03
+## Official API references checked on 2026-09-04
 
 - [Accelerometer](https://docs.zepp.com/docs/reference/device-app-api/newAPI/sensor/Accelerometer/)
 - [Gyroscope](https://docs.zepp.com/docs/reference/device-app-api/newAPI/sensor/Gyroscope/)
 - [Vibrator](https://docs.zepp.com/docs/reference/device-app-api/newAPI/sensor/Vibrator/)
+- [setPageBrightTime](https://docs.zepp.com/docs/reference/device-app-api/newAPI/display/setPageBrightTime/)
+- [resetPageBrightTime](https://docs.zepp.com/docs/reference/device-app-api/newAPI/display/resetPageBrightTime/)
 - [App Service limitations](https://docs.zepp.com/docs/guides/framework/device/app-service/)
 - [Amazfit Bip 6 target data](https://docs.zepp.com/docs/reference/related-resources/device-list/)

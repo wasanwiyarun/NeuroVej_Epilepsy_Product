@@ -1,6 +1,6 @@
 {
   "name": "neurovej-bip6-motion-sensor-spike",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "description": "Non-clinical foreground ACC/GYRO feasibility logger for Amazfit Bip 6",
