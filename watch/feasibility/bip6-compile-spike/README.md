@@ -56,8 +56,10 @@ and mitigations are approved.
 
 ## Limitations
 
-- Compile success does not prove installation or operation on a physical watch.
-- No simulator or physical-device test is included.
+- Physical-device installation and foreground launch were observed on
+  2026-09-03; this does not prove reliable or production operation.
+- No simulator, repeated-launch, reboot, or uninstall/reinstall test is
+  included.
 - The placeholder app ID is not an approved production or store identity.
 - Sensor availability, sampling, background operation, communication, and
   power behavior remain open FEA-001 questions.
