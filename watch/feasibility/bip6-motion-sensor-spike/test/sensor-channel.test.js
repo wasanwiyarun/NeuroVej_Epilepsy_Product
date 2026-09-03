@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
   createSensorChannelState,
+  observeSensorChannelGap,
   startSensorChannel,
   stopSensorChannel,
 } from '../lib/sensor-channel.js'
@@ -112,6 +113,109 @@ test('FEA-WATCH-UT-010 rejects invalid sample data without updating age', () => 
 
   assert.equal(channel.sample, null)
   assert.equal(channel.lastSampleMs, null)
+  assert.equal(channel.callbackCount, 1)
+  assert.equal(channel.lastCallbackMs, 1234)
   assert.equal(channel.error, 'Mock sensor returned invalid data')
   stopSensorChannel(channel)
+})
+
+test('FEA-WATCH-UT-013 retains bounded callback interval and gap statistics', () => {
+  const calls = []
+  const callbackTimes = [1000, 1040, 1075, 1155]
+  const channel = createSensorChannelState(900)
+  const MockSensor = createMockSensor(calls)
+
+  startSensorChannel(
+    channel,
+    MockSensor,
+    7,
+    'Mock sensor',
+    () => callbackTimes.shift(),
+  )
+  channel.callback()
+  channel.callback()
+  channel.callback()
+  channel.callback()
+
+  assert.equal(channel.callbackCount, 4)
+  assert.equal(channel.lastCallbackMs, 1155)
+  assert.equal(channel.minimumCallbackIntervalMs, 35)
+  assert.equal(channel.maximumCallbackIntervalMs, 80)
+  assert.equal(channel.maximumObservedGapMs, 100)
+
+  assert.equal(observeSensorChannelGap(channel, 1300), true)
+  assert.equal(channel.maximumObservedGapMs, 145)
+  assert.equal(observeSensorChannelGap(channel, 1100), false)
+  assert.equal(channel.maximumObservedGapMs, 145)
+  stopSensorChannel(channel)
+})
+
+test('FEA-WATCH-UT-014 rejects backward callback time without corrupting statistics', () => {
+  const calls = []
+  const callbackTimes = [1040, 1030, 1080]
+  const channel = createSensorChannelState(1000)
+  const MockSensor = createMockSensor(calls)
+
+  startSensorChannel(
+    channel,
+    MockSensor,
+    7,
+    'Mock sensor',
+    () => callbackTimes.shift(),
+  )
+
+  channel.callback()
+  assert.equal(channel.lastSampleMs, 1040)
+  assert.equal(channel.maximumObservedGapMs, 40)
+
+  channel.callback()
+  assert.equal(channel.callbackCount, 2)
+  assert.equal(channel.lastCallbackMs, 1040)
+  assert.equal(channel.lastSampleMs, 1040)
+  assert.equal(channel.minimumCallbackIntervalMs, null)
+  assert.equal(channel.maximumCallbackIntervalMs, null)
+  assert.equal(channel.error, null)
+  assert.equal(channel.timingError, 'Mock sensor callback timing invalid')
+
+  channel.callback()
+  assert.equal(channel.callbackCount, 3)
+  assert.equal(channel.lastCallbackMs, 1080)
+  assert.equal(channel.lastSampleMs, 1080)
+  assert.equal(channel.minimumCallbackIntervalMs, 40)
+  assert.equal(channel.maximumCallbackIntervalMs, 40)
+  assert.equal(channel.maximumObservedGapMs, 40)
+  assert.equal(channel.error, null)
+  assert.equal(channel.timingError, 'Mock sensor callback timing invalid')
+  stopSensorChannel(channel)
+})
+
+test('FEA-WATCH-UT-017 initializes and resets bounded session statistics', () => {
+  const calls = []
+  const callbackTimes = [500, 540]
+  const channel = createSensorChannelState()
+  const MockSensor = createMockSensor(calls)
+
+  channel.callbackCount = Number.MAX_SAFE_INTEGER
+  startSensorChannel(
+    channel,
+    MockSensor,
+    7,
+    'Mock sensor',
+    () => callbackTimes.shift(),
+  )
+  channel.callback()
+
+  assert.equal(channel.startedAtMs, 500)
+  assert.equal(channel.lastCallbackMs, 540)
+  assert.equal(channel.maximumObservedGapMs, 40)
+  assert.equal(channel.callbackCount, Number.MAX_SAFE_INTEGER)
+  stopSensorChannel(channel)
+
+  const nextSession = createSensorChannelState(1000)
+  assert.equal(nextSession.callbackCount, 0)
+  assert.equal(nextSession.lastCallbackMs, null)
+  assert.equal(nextSession.minimumCallbackIntervalMs, null)
+  assert.equal(nextSession.maximumCallbackIntervalMs, null)
+  assert.equal(nextSession.maximumObservedGapMs, null)
+  assert.equal(nextSession.timingError, null)
 })

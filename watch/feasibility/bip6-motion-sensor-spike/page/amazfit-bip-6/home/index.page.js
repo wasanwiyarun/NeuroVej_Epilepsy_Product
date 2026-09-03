@@ -14,17 +14,20 @@ import {
 } from '@zos/ui'
 
 import {
-  STREAM_STATE,
   accelerationMagnitudeG,
+  acquisitionBannerText,
+  acquisitionHealthText,
   callbackRateHz,
   classifyAcquisition,
+  classifyCombinedAcquisition,
   dataAgeMs,
-  formatAge,
+  formatCallbackStatistics,
   formatNumber,
   vectorMagnitude,
 } from '../../../lib/telemetry.js'
 import {
   createSensorChannelState,
+  observeSensorChannelGap,
   startSensorChannel,
   stopSensorChannel,
 } from '../../../lib/sensor-channel.js'
@@ -118,8 +121,8 @@ function createInterface() {
   runtime.widgets.accelerometerAge = createText(
     264,
     24,
-    'ACC data age: waiting',
-    15,
+    'n:0 age:-- dt:-- gap:--',
+    13,
     0x9ca3af,
   )
   runtime.widgets.gyroscope = createText(
@@ -132,8 +135,8 @@ function createInterface() {
   runtime.widgets.gyroscopeAge = createText(
     322,
     24,
-    'GYRO data age: waiting',
-    15,
+    'n:0 age:-- dt:-- gap:--',
+    13,
     0x9ca3af,
   )
 
@@ -180,94 +183,44 @@ function refreshCallbackRates(nowMs) {
   runtime.rateSnapshotMs = nowMs
 }
 
+function refreshMaximumObservedGaps(nowMs) {
+  observeSensorChannelGap(runtime.accelerometer, nowMs)
+  observeSensorChannelGap(runtime.gyroscope, nowMs)
+}
+
 function getStreamStates(nowMs) {
   return {
     accelerometer: classifyAcquisition(
       runtime.accelerometer.lastSampleMs,
       nowMs,
-      runtime.startedAtMs,
+      runtime.accelerometer.startedAtMs === null
+        ? runtime.startedAtMs
+        : runtime.accelerometer.startedAtMs,
     ),
     gyroscope: classifyAcquisition(
       runtime.gyroscope.lastSampleMs,
       nowMs,
-      runtime.startedAtMs,
+      runtime.gyroscope.startedAtMs === null
+        ? runtime.startedAtMs
+        : runtime.gyroscope.startedAtMs,
     ),
   }
 }
 
-function hasInactiveStream(streamStates) {
-  return (
-    runtime.accelerometer.error ||
-    runtime.gyroscope.error ||
-    streamStates.accelerometer === STREAM_STATE.STARTUP_TIMEOUT ||
-    streamStates.gyroscope === STREAM_STATE.STARTUP_TIMEOUT ||
-    streamStates.accelerometer === STREAM_STATE.STALE ||
-    streamStates.gyroscope === STREAM_STATE.STALE ||
-    streamStates.accelerometer === STREAM_STATE.INVALID_CLOCK ||
-    streamStates.gyroscope === STREAM_STATE.INVALID_CLOCK
-  )
-}
-
-function renderBanner(nowMs, streamStates) {
+function renderBanner(nowMs, acquisitionState) {
   if (nowMs < runtime.selfTestUntilMs) {
     setText(runtime.widgets.banner, 'ALERT UI SELF-TEST')
     setText(runtime.widgets.assessment, runtime.selfTestDetail)
     return
   }
 
-  if (hasInactiveStream(streamStates)) {
-    setText(runtime.widgets.banner, 'SENSOR STREAM NOT ACTIVE')
-  } else if (
-    streamStates.accelerometer === STREAM_STATE.STREAMING &&
-    streamStates.gyroscope === STREAM_STATE.STREAMING
-  ) {
-    setText(runtime.widgets.banner, 'Monitoring: sensor stream only')
-  } else {
-    setText(runtime.widgets.banner, 'INITIALIZING SENSORS')
-  }
+  setText(runtime.widgets.banner, acquisitionBannerText(acquisitionState))
 
   setText(runtime.widgets.assessment, 'No medical assessment active')
 }
 
-function renderHealth(streamStates) {
-  if (runtime.accelerometer.error || runtime.gyroscope.error) {
-    setText(runtime.widgets.health, 'Sensor unavailable - stop test')
-    return
-  }
-
-  if (
-    streamStates.accelerometer === STREAM_STATE.INVALID_CLOCK ||
-    streamStates.gyroscope === STREAM_STATE.INVALID_CLOCK
-  ) {
-    setText(runtime.widgets.health, 'Sensor timing error - stop test')
-    return
-  }
-
-  if (
-    streamStates.accelerometer === STREAM_STATE.STARTUP_TIMEOUT ||
-    streamStates.gyroscope === STREAM_STATE.STARTUP_TIMEOUT
-  ) {
-    setText(runtime.widgets.health, 'No sensor data - stop test')
-    return
-  }
-
-  if (
-    streamStates.accelerometer === STREAM_STATE.STALE ||
-    streamStates.gyroscope === STREAM_STATE.STALE
-  ) {
-    setText(runtime.widgets.health, 'Sensor data stale - stop test')
-    return
-  }
-
-  if (
-    streamStates.accelerometer === STREAM_STATE.WAITING ||
-    streamStates.gyroscope === STREAM_STATE.WAITING
-  ) {
-    setText(runtime.widgets.health, 'Waiting for sensor data')
-    return
-  }
-
-  setText(runtime.widgets.health, 'Sensors streaming (foreground)')
+function renderHealth(acquisitionState) {
+  setText(runtime.widgets.health, acquisitionHealthText(acquisitionState))
 }
 
 function renderTelemetry(nowMs) {
@@ -290,7 +243,13 @@ function renderTelemetry(nowMs) {
   )
   setText(
     runtime.widgets.accelerometerAge,
-    `ACC data age: ${formatAge(accelerometerAge)}`,
+    formatCallbackStatistics(
+      runtime.accelerometer.callbackCount,
+      runtime.accelerometer.minimumCallbackIntervalMs,
+      runtime.accelerometer.maximumCallbackIntervalMs,
+      runtime.accelerometer.maximumObservedGapMs,
+      accelerometerAge,
+    ),
   )
   setText(
     runtime.widgets.gyroscope,
@@ -301,7 +260,13 @@ function renderTelemetry(nowMs) {
   )
   setText(
     runtime.widgets.gyroscopeAge,
-    `GYRO data age: ${formatAge(gyroscopeAge)}`,
+    formatCallbackStatistics(
+      runtime.gyroscope.callbackCount,
+      runtime.gyroscope.minimumCallbackIntervalMs,
+      runtime.gyroscope.maximumCallbackIntervalMs,
+      runtime.gyroscope.maximumObservedGapMs,
+      gyroscopeAge,
+    ),
   )
 }
 
@@ -312,9 +277,15 @@ function refreshInterface() {
 
   const nowMs = Date.now()
   const streamStates = getStreamStates(nowMs)
+  const acquisitionState = classifyCombinedAcquisition(
+    runtime.accelerometer,
+    runtime.gyroscope,
+    streamStates,
+  )
   refreshCallbackRates(nowMs)
-  renderBanner(nowMs, streamStates)
-  renderHealth(streamStates)
+  refreshMaximumObservedGaps(nowMs)
+  renderBanner(nowMs, acquisitionState)
+  renderHealth(acquisitionState)
   renderTelemetry(nowMs)
 }
 

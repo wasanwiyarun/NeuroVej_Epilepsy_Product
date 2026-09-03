@@ -1,17 +1,87 @@
-import { isFiniteVector } from './telemetry.js'
+import {
+  callbackGapMs,
+  callbackIntervalMs,
+  isFiniteVector,
+} from './telemetry.js'
 
-export function createSensorChannelState() {
+export function createSensorChannelState(startedAtMs = null) {
   return {
     sensor: null,
     callback: null,
     active: false,
+    startedAtMs,
     sample: null,
     lastSampleMs: null,
     callbackCount: 0,
     callbackRateHz: null,
     previousCount: 0,
+    lastCallbackMs: null,
+    minimumCallbackIntervalMs: null,
+    maximumCallbackIntervalMs: null,
+    maximumObservedGapMs: null,
+    timingError: null,
     error: null,
   }
+}
+
+function recordCallbackTiming(channel, callbackTimeMs) {
+  if (
+    !Number.isFinite(callbackTimeMs) ||
+    (Number.isFinite(channel.startedAtMs) &&
+      callbackTimeMs < channel.startedAtMs) ||
+    (channel.lastCallbackMs !== null &&
+      (!Number.isFinite(channel.lastCallbackMs) ||
+        callbackTimeMs < channel.lastCallbackMs))
+  ) {
+    return false
+  }
+
+  const intervalMs = callbackIntervalMs(
+    channel.lastCallbackMs,
+    callbackTimeMs,
+  )
+  if (intervalMs !== null) {
+    channel.minimumCallbackIntervalMs =
+      channel.minimumCallbackIntervalMs === null
+        ? intervalMs
+        : Math.min(channel.minimumCallbackIntervalMs, intervalMs)
+    channel.maximumCallbackIntervalMs =
+      channel.maximumCallbackIntervalMs === null
+        ? intervalMs
+        : Math.max(channel.maximumCallbackIntervalMs, intervalMs)
+  }
+
+  const completedGapMs = callbackGapMs(
+    channel.lastCallbackMs,
+    callbackTimeMs,
+    channel.startedAtMs,
+  )
+  if (completedGapMs !== null) {
+    channel.maximumObservedGapMs =
+      channel.maximumObservedGapMs === null
+        ? completedGapMs
+        : Math.max(channel.maximumObservedGapMs, completedGapMs)
+  }
+
+  channel.lastCallbackMs = callbackTimeMs
+  return true
+}
+
+export function observeSensorChannelGap(channel, nowMs) {
+  const openGapMs = callbackGapMs(
+    channel.lastCallbackMs,
+    nowMs,
+    channel.startedAtMs,
+  )
+  if (openGapMs === null) {
+    return false
+  }
+
+  channel.maximumObservedGapMs =
+    channel.maximumObservedGapMs === null
+      ? openGapMs
+      : Math.max(channel.maximumObservedGapMs, openGapMs)
+  return true
 }
 
 export function stopSensorChannel(channel, log = () => {}) {
@@ -48,18 +118,32 @@ export function startSensorChannel(
   log = () => {},
 ) {
   try {
+    if (channel.startedAtMs === null || channel.startedAtMs === undefined) {
+      channel.startedAtMs = now()
+    }
+    if (!Number.isFinite(channel.startedAtMs)) {
+      throw new Error('invalid sensor start time')
+    }
+
     const sensor = new SensorType()
     const callback = () => {
       if (!channel.active) {
         return
       }
 
-      channel.callbackCount += 1
+      if (channel.callbackCount < Number.MAX_SAFE_INTEGER) {
+        channel.callbackCount += 1
+      }
 
       try {
-        const sample = sensor.getCurrent()
         const sampleTimeMs = now()
-        if (!isFiniteVector(sample) || !Number.isFinite(sampleTimeMs)) {
+        if (!recordCallbackTiming(channel, sampleTimeMs)) {
+          channel.timingError = `${label} callback timing invalid`
+          return
+        }
+
+        const sample = sensor.getCurrent()
+        if (!isFiniteVector(sample)) {
           channel.error = `${label} returned invalid data`
           return
         }

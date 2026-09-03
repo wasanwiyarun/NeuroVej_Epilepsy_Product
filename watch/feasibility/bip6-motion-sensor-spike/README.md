@@ -2,8 +2,9 @@
 
 This DOC#5 app is a non-clinical feasibility probe for FEA-PRO-001. It opens
 the Amazfit Bip 6 accelerometer and gyroscope at Zepp OS `FREQ_MODE_NORMAL`,
-shows live vector magnitudes, observed callback rates, and data ages, and then
-stops both streams when the page is destroyed.
+shows live vector magnitudes, observed callback rates, session callback counts,
+minimum/maximum callback intervals, maximum observed callback gaps, and data
+ages, and then stops both streams when the page is destroyed.
 
 It does **not** detect, diagnose, predict, or rule out seizures. It does not
 show a "normal" state, persist motion data, transmit data, contact a phone, or
@@ -21,6 +22,20 @@ visual and finite haptic **self-test**.
 - Five-second initial-sample and 2.5-second stale-data limits are engineering
   UI fault thresholds only. They are not medical thresholds or sampling-rate
   guarantees.
+- Callback timing statistics use bounded, constant memory. `min/max` covers
+  completed callback-to-callback intervals; `gap` is the longest callback
+  silence seen since sensor-session start, including the current open silence;
+  and `age` is the age of the last valid sensor value.
+- Callback times are local `Date.now()` arrival observations, not
+  supplier-provided sensor timestamps. They cannot establish exact acquisition
+  timing, synchronized ACC/GYRO samples, or an algorithm-ready sample rate.
+- A backwards callback-arrival time latches `Sensor timing error - stop test`
+  for the rest of the foreground session. A fresh launch resets the statistics
+  and fault latch.
+- The compact row shows callback count as `n`, last-valid-sample age as `age`,
+  minimum/maximum interval as `dt`, and longest silence as `gap`. Values beyond
+  the fixed display range use a trailing `+`; the two-minute protocol remains
+  inside the exact display range under expected callback rates.
 - The self-test uses one finite `VIBRATOR_SCENE_NOTIFICATION` scene, ignores
   repeated presses while active, and is stopped again during cleanup.
 - Do not use this app for medical decisions or emergency response.
@@ -36,6 +51,7 @@ treated as monitoring stopped.
 
 There is intentionally no App Service, Side Service, network permission,
 storage permission, or mobile notification implementation in this package.
+The timing extension also stores no callback history or raw motion log.
 
 ## Pinned environment
 
@@ -71,6 +87,8 @@ the Git repositories.
 
 - whether both sensor constructors and permissions work on the owner's watch;
 - observed callback rates for Zepp's qualitative `FREQ_MODE_NORMAL` setting;
+- per-stream callback count, minimum/maximum completed callback interval, and
+  maximum observed callback silence for the foreground session;
 - whether values change plausibly with ordinary wrist movement;
 - whether data-stale and unavailable states appear safely;
 - whether the finite visual/haptic self-test is distinguishable from ordinary

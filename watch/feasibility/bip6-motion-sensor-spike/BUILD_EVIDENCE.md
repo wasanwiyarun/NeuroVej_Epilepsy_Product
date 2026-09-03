@@ -1,18 +1,25 @@
-# Build Evidence — 2026-09-03
+# Build Evidence — 2026-09-04
 
 **Controlled work item:** DOC#5
 
-**Scope:** Non-clinical foreground ACC/GYRO acquisition and alert UI self-test
+**Scope:** Non-clinical foreground ACC/GYRO acquisition, bounded callback
+timing observations, and alert UI self-test
 
 ## Static and unit verification
 
 - Node.js syntax checks passed for the app, page, and both shared libraries.
 - `npm test` completed with exit code 0.
-- Ten named checks in two test files passed. They cover vector conversion,
+- Seventeen named checks in two test files passed. They cover vector conversion,
   invalid data, stale and initial-sample timeouts, invalid timing, callback-rate
   calculation, display formatting, sensor start/callback/stop order, callback
   identity during cleanup, startup-failure cleanup, and suppression of a late
-  callback after stop.
+  callback after stop. Added checks cover callback interval/open-gap
+  calculations, compact timing formatting, constant-memory per-stream extrema,
+  the initial/open callback gap, and rejection of backwards callback time
+  without corrupting the last valid statistics. Presentation tests verify
+  that the timing fault is latched and takes precedence, the monitoring banner
+  requires both streams, a new session resets statistics, counters saturate,
+  and worst-case timing text remains a fixed maximum length.
 
 ## Package build
 
@@ -24,9 +31,9 @@ page bundles, PNG-to-TGA conversion completed, and QJSC compiled both bundles.
 Local generated artifact:
 
 ```text
-dist/1090901-Bip_6_Sensor_Logger-0.1.0-20260903235002.zab
-size: 23746 bytes
-SHA-256: da6eef24b8f1ab5c116633ea041028d5687ce02105b34fdb79da14c60f53ac71
+dist/1090901-Bip_6_Sensor_Logger-0.1.1-20260904004429.zab
+size: 29044 bytes
+SHA-256: 5e5a39e5a9bfb997bad8ecb550b0541dcab93fb8bb3fb440e918bfe52683b7a9
 ```
 
 The timestamped package is ignored by Git and is not a release baseline. It
@@ -36,11 +43,18 @@ only.
 The deterministic 124 x 124 source icon has SHA-256
 `34ffbbf6e40f587db713a3122f6047710061da466321bd2d3a1cc4922efe37c2`.
 
+The ambient shell selected Node.js 18.19.1, which cannot execute the pinned
+test command. Verification and the successful build therefore used an
+explicit `PATH` rooted at the repository-local Node.js 24.19.0 toolchain.
+
 ## Tool/security observations
 
 - The app declares only the Zepp accelerometer and gyroscope permissions. It
   declares no background-service, storage, BLE, network, or notification
   permission.
+- Timing observation uses a fixed set of scalar fields per stream and retains
+  no callback history, paired samples, raw-motion log, or algorithm input
+  buffer.
 - There are no delivered npm runtime dependencies; npm packages are used by
   the development build only.
 - The clean development dependency install reported 31 known transitive
@@ -52,8 +66,8 @@ The deterministic 124 x 124 source icon has SHA-256
 ## Physical-device verification
 
 Pending owner execution using `PHYSICAL_TEST_PROTOCOL.md`. A successful compile
-does not prove sensor availability or correct behavior on a physical Amazfit
-Bip 6.
+does not prove sensor availability, callback-timing behavior, display fit, or
+correct behavior on a physical Amazfit Bip 6.
 
 ## Explicitly unverified
 
@@ -64,3 +78,14 @@ Bip 6.
 - motion-data storage, export, or phone communication;
 - algorithm-driven detection or alerting; and
 - operation on a physical watch until the pending protocol is run.
+
+## Previous development build
+
+Version 0.1.0 was built on 2026-09-03 before callback count/interval/gap
+display was added:
+
+```text
+dist/1090901-Bip_6_Sensor_Logger-0.1.0-20260903235002.zab
+size: 23746 bytes
+SHA-256: da6eef24b8f1ab5c116633ea041028d5687ce02105b34fdb79da14c60f53ac71
+```
