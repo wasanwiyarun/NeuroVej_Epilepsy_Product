@@ -51,7 +51,7 @@ vulnerabilities also prevent treating this package as a release baseline.
 
 ## Verify
 
-From this directory, using Node.js 20 or newer:
+From this directory, using the pinned Node.js 24.19.0 runtime:
 
 ```sh
 npm ci
